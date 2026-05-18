@@ -13,11 +13,18 @@ st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦")
 @st.cache_resource
 def load():
     needed = ["preprocessor.pkl", "lr_model.pkl", "knn_model.pkl"]
+    # If models are missing, or if they crash due to version mismatch, retrain them on the fly!
     if any(not os.path.exists(f) for f in needed):
-        return None, None, None
-    return (joblib.load("preprocessor.pkl"),
-            joblib.load("lr_model.pkl"),
-            joblib.load("knn_model.pkl"))
+        os.system("python Train.py")
+    try:
+        return (joblib.load("preprocessor.pkl"),
+                joblib.load("lr_model.pkl"),
+                joblib.load("knn_model.pkl"))
+    except Exception:
+        os.system("python Train.py")
+        return (joblib.load("preprocessor.pkl"),
+                joblib.load("lr_model.pkl"),
+                joblib.load("knn_model.pkl"))
 
 preprocessor, lr, knn = load()
 
