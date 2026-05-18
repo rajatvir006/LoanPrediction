@@ -57,7 +57,10 @@ def make_dataset(n=900, seed=42):
         df.loc[rng.random(n) < frac, col] = np.nan
     return df
 
-df = make_dataset()
+# df = make_dataset()  <-- Using real CSV now
+df = pd.read_csv("train.csv")
+df = df.drop(columns=["Loan_ID"]) # Drop ID since it's not a feature
+df["Loan_Status"] = df["Loan_Status"].map({"Y": 1, "N": 0}) # Map to 1 and 0
 print(f"Dataset: {df.shape}  |  Approved: {df.Loan_Status.sum()}  Rejected: {(df.Loan_Status==0).sum()}")
 
 # ─────────────────────────────────────────────
