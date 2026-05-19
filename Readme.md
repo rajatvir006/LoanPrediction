@@ -7,12 +7,12 @@
 
 ```
 loan_approval_project/
-├── train.py            ← Run this first  (ML pipeline)
-├── app.py              ← Run this second (Streamlit app)
+├── Train.py            ← Run this first  (ML pipeline)
+├── App.py              ← Run this second (Streamlit app)
 ├── requirements.txt    ← Dependencies
 ├── README.md           ← This file
 │
-│   (created after running train.py)
+│   (created after running Train.py)
 ├── preprocessor.pkl
 ├── lr_model.pkl
 ├── knn_model.pkl
@@ -29,10 +29,10 @@ loan_approval_project/
 pip install -r requirements.txt
 
 # Step 2 — train and save models
-python train.py
+python Train.py
 
 # Step 3 — launch the web app
-streamlit run app.py
+streamlit run App.py
 # Opens at http://localhost:8501
 ```
 

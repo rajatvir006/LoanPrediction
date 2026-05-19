@@ -31,17 +31,15 @@ from imblearn.over_sampling     import SMOTE
 # ─────────────────────────────────────────────
 # 1. LOAD DATASET
 # ─────────────────────────────────────────────
-# Real Kaggle Loan Prediction dataset (Analytics Vidhya).
-# 614 rows, 12 features + 1 target (Loan_Status: Y/N → 1/0).
 df = pd.read_csv("train.csv")
-df = df.drop(columns=["Loan_ID"])                           # ID column — not a feature
-df["Loan_Status"] = df["Loan_Status"].map({"Y": 1, "N": 0}) # Map text labels to binary
+df = df.drop(columns=["Loan_ID"])
+df["Loan_Status"] = df["Loan_Status"].map({"Y": 1, "N": 0})
 print(f"Dataset: {df.shape}  |  Approved: {df.Loan_Status.sum()}  Rejected: {(df.Loan_Status==0).sum()}")
 
 
 
 # ─────────────────────────────────────────────
-# 2. TRAIN-TEST SPLIT  (always first — prevents leakage)
+# 2. TRAIN-TEST SPLIT
 # ─────────────────────────────────────────────
 X = df.drop(columns=["Loan_Status"])
 y = df["Loan_Status"]
@@ -59,37 +57,29 @@ num_cols = ["ApplicantIncome","CoapplicantIncome","LoanAmount",
 cat_cols = ["Gender","Married","Dependents","Education",
             "Self_Employed","Property_Area"]
 
-# Numerical: fill missing with median, then scale to mean=0 std=1
 num_pipeline = Pipeline([
     ("imputer", SimpleImputer(strategy="median")),
     ("scaler",  StandardScaler()),
 ])
 
-# Categorical: fill missing with most common value, then one-hot encode
-# drop='first' removes one dummy column per feature to avoid multicollinearity
 cat_pipeline = Pipeline([
     ("imputer", SimpleImputer(strategy="most_frequent")),
     ("encoder", OneHotEncoder(drop="first", handle_unknown="ignore", sparse_output=False)),
 ])
 
-# ColumnTransformer applies the right pipeline to the right columns
 preprocessor = ColumnTransformer([
     ("num", num_pipeline, num_cols),
     ("cat", cat_pipeline, cat_cols),
 ])
 
-# Fit ONLY on training data, then transform both sets
 X_train_proc = preprocessor.fit_transform(X_train)
-X_test_proc  = preprocessor.transform(X_test)      # no fitting here!
+X_test_proc  = preprocessor.transform(X_test)
 
 print(f"After preprocessing — Train shape: {X_train_proc.shape}")
 
 # ─────────────────────────────────────────────
-# 4. SMOTE  (only on training data!)
+# 4. SMOTE
 # ─────────────────────────────────────────────
-# SMOTE creates synthetic minority-class samples so both classes are equal.
-# Never apply it to the test set — that would corrupt our evaluation.
-
 smote = SMOTE(random_state=42)
 X_train_bal, y_train_bal = smote.fit_resample(X_train_proc, y_train)
 print(f"After SMOTE — Train shape: {X_train_bal.shape}  "
@@ -125,10 +115,9 @@ show_metrics("Logistic Regression", y_test, lr_pred)
 show_metrics("KNN", y_test, knn_pred)
 
 # ─────────────────────────────────────────────
-# 7. PLOTS  (confusion matrices + PCA)
+# 7. PLOTS
 # ─────────────────────────────────────────────
 
-# — Confusion Matrices —
 fig, axes = plt.subplots(1, 2, figsize=(10, 4))
 fig.suptitle("Confusion Matrices", fontweight="bold")
 for ax, (name, preds) in zip(axes, [("Logistic Regression", lr_pred),
@@ -141,7 +130,6 @@ plt.tight_layout()
 plt.savefig("confusion_matrices.png", dpi=120)
 plt.close()
 
-# — PCA Scatter (2D view of training data after SMOTE) —
 pca   = PCA(n_components=2, random_state=42)
 X_2d  = pca.fit_transform(X_train_bal)
 ev    = pca.explained_variance_ratio_ * 100

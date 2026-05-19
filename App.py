@@ -13,18 +13,13 @@ import sys
 st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦")
 
 # ── Load models ───────────────────────────────────────────────────────────────
-# Dataset bounds (from the real Kaggle CSV) — used to cap UI sliders
-# so users can't enter values the model has never seen during training.
-DATA_MAX_APP_INCOME  = 81000   # max ApplicantIncome in train.csv
-DATA_MAX_COAPP_INCOME = 41667  # max CoapplicantIncome in train.csv
+DATA_MAX_APP_INCOME  = 81000
+DATA_MAX_COAPP_INCOME = 41667
 
-BASE = pathlib.Path(__file__).parent   # always resolves relative to this file
+BASE = pathlib.Path(__file__).parent
 
 @st.cache_resource
 def load():
-    # Use sys.executable — always the correct Python binary (python3 on Linux)
-    # Using pathlib.Path so paths always resolve correctly regardless of
-    # which directory the app is launched from.
     needed = [BASE / "preprocessor.pkl", BASE / "lr_model.pkl", BASE / "knn_model.pkl"]
     if any(not p.exists() for p in needed):
         subprocess.run([sys.executable, str(BASE / "Train.py")], check=True)
