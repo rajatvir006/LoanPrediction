@@ -28,40 +28,17 @@ from sklearn.metrics            import (confusion_matrix, ConfusionMatrixDisplay
                                         classification_report)
 from imblearn.over_sampling     import SMOTE
 
-def make_dataset(n=900, seed=42):
-    rng = np.random.default_rng(seed)
-    g  = rng.choice(["Male","Female"],           n, p=[0.80,0.20])
-    m  = rng.choice(["Yes","No"],                n, p=[0.65,0.35])
-    d  = rng.choice(["0","1","2","3+"],          n, p=[0.57,0.17,0.16,0.10])
-    ed = rng.choice(["Graduate","Not Graduate"], n, p=[0.78,0.22])
-    se = rng.choice(["Yes","No"],                n, p=[0.14,0.86])
-    pa = rng.choice(["Urban","Semiurban","Rural"],n, p=[0.38,0.38,0.24])
-    ch = rng.choice([1.0, 0.0],                  n, p=[0.84,0.16])
-    ai = rng.integers(1000, 80000, n).astype(float)
-    ci = rng.integers(0,    40000, n).astype(float)
-    la = rng.integers(9,    700,   n).astype(float)
-    lt = rng.choice([120,180,240,300,360,480],   n).astype(float)
-
-    score  = (ch==1)*0.45 + (ai>4000)*0.20 + (la<200)*0.10 + \
-             (m=="Yes")*0.08 + (ed=="Graduate")*0.07 + (ci>1000)*0.05
-    status = (rng.random(n) < score*1.1).astype(int)
-
-    df = pd.DataFrame({
-        "Gender":g,"Married":m,"Dependents":d,"Education":ed,
-        "Self_Employed":se,"ApplicantIncome":ai,"CoapplicantIncome":ci,
-        "LoanAmount":la,"Loan_Amount_Term":lt,"Credit_History":ch,
-        "Property_Area":pa,"Loan_Status":status,
-    })
-    for col, frac in [("Gender",0.04),("Married",0.03),("LoanAmount",0.08),
-                      ("Credit_History",0.07),("Self_Employed",0.05)]:
-        df.loc[rng.random(n) < frac, col] = np.nan
-    return df
-
-# df = make_dataset()  <-- Using real CSV now
+# ─────────────────────────────────────────────
+# 1. LOAD DATASET
+# ─────────────────────────────────────────────
+# Real Kaggle Loan Prediction dataset (Analytics Vidhya).
+# 614 rows, 12 features + 1 target (Loan_Status: Y/N → 1/0).
 df = pd.read_csv("train.csv")
-df = df.drop(columns=["Loan_ID"]) # Drop ID since it's not a feature
-df["Loan_Status"] = df["Loan_Status"].map({"Y": 1, "N": 0}) # Map to 1 and 0
+df = df.drop(columns=["Loan_ID"])                           # ID column — not a feature
+df["Loan_Status"] = df["Loan_Status"].map({"Y": 1, "N": 0}) # Map text labels to binary
 print(f"Dataset: {df.shape}  |  Approved: {df.Loan_Status.sum()}  Rejected: {(df.Loan_Status==0).sum()}")
+
+
 
 # ─────────────────────────────────────────────
 # 2. TRAIN-TEST SPLIT  (always first — prevents leakage)

@@ -5,40 +5,44 @@ Run with:  streamlit run app.py
 
 import streamlit as st
 import pandas as pd
-import joblib, os
+import joblib
+import pathlib
+import subprocess
+import sys
 
 st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦")
 
 # ── Load models ───────────────────────────────────────────────────────────────
+# Dataset bounds (from the real Kaggle CSV) — used to cap UI sliders
+# so users can't enter values the model has never seen during training.
+DATA_MAX_APP_INCOME  = 81000   # max ApplicantIncome in train.csv
+DATA_MAX_COAPP_INCOME = 41667  # max CoapplicantIncome in train.csv
+
+BASE = pathlib.Path(__file__).parent   # always resolves relative to this file
+
 @st.cache_resource
 def load():
-    import subprocess, sys, pathlib
-    needed = ["preprocessor.pkl", "lr_model.pkl", "knn_model.pkl"]
-    # Use sys.executable so we always call the correct Python binary (python3 on Linux)
-    script = pathlib.Path(__file__).parent / "Train.py"
-    if any(not os.path.exists(f) for f in needed):
-        subprocess.run([sys.executable, str(script)], check=True)
-    try:
-        return (joblib.load("preprocessor.pkl"),
-                joblib.load("lr_model.pkl"),
-                joblib.load("knn_model.pkl"))
-    except Exception:
-        subprocess.run([sys.executable, str(script)], check=True)
-        return (joblib.load("preprocessor.pkl"),
-                joblib.load("lr_model.pkl"),
-                joblib.load("knn_model.pkl"))
+    # Use sys.executable — always the correct Python binary (python3 on Linux)
+    # Using pathlib.Path so paths always resolve correctly regardless of
+    # which directory the app is launched from.
+    needed = [BASE / "preprocessor.pkl", BASE / "lr_model.pkl", BASE / "knn_model.pkl"]
+    if any(not p.exists() for p in needed):
+        subprocess.run([sys.executable, str(BASE / "Train.py")], check=True)
+    return (joblib.load(BASE / "preprocessor.pkl"),
+            joblib.load(BASE / "lr_model.pkl"),
+            joblib.load(BASE / "knn_model.pkl"))
 
-
-preprocessor, lr, knn = load()
+try:
+    preprocessor, lr, knn = load()
+except Exception as e:
+    st.error(f"❌ Model loading failed: {e}")
+    st.info("This usually means Train.py failed. Check that train.csv is present.")
+    st.stop()
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.title("🏦 Loan Approval Predictor")
 st.write("Fill in the applicant details and click **Predict** to see the result.")
 st.divider()
-
-if preprocessor is None:
-    st.error("Models not found. Please run  `python train.py`  first.")
-    st.stop()
 
 # ── Input form ────────────────────────────────────────────────────────────────
 c1, c2 = st.columns(2)
@@ -52,9 +56,18 @@ with c1:
     property_area = st.selectbox("Property Area",   ["Urban","Semiurban","Rural"])
 
 with c2:
-    app_income  = st.number_input("Applicant Income (₹/month)",   0, 500000, 5000, 500)
-    coapp_income= st.number_input("Co-applicant Income (₹/month)",0, 200000, 0,    500)
-    loan_amount = st.number_input("Loan Amount (₹ thousands)",    9, 700,    120,  5)
+    app_income   = st.number_input("Applicant Income (per month)",
+                                   min_value=0, max_value=DATA_MAX_APP_INCOME,
+                                   value=5000, step=500,
+                                   help=f"Max in training data: {DATA_MAX_APP_INCOME:,}")
+    coapp_income = st.number_input("Co-applicant Income (per month)",
+                                   min_value=0, max_value=DATA_MAX_COAPP_INCOME,
+                                   value=0, step=500,
+                                   help=f"Max in training data: {DATA_MAX_COAPP_INCOME:,}")
+    loan_amount  = st.number_input("Loan Amount (in thousands)",
+                                   min_value=9, max_value=700,
+                                   value=120, step=5,
+                                   help="e.g. enter 120 for a loan of 120,000")
     loan_term   = st.selectbox("Loan Term (months)", [120,180,240,300,360,480], index=4)
     credit_hist = st.radio("Credit History",
                            [1.0, 0.0],
