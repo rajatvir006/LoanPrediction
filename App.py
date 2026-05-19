@@ -12,19 +12,22 @@ st.set_page_config(page_title="Loan Approval Predictor", page_icon="🏦")
 # ── Load models ───────────────────────────────────────────────────────────────
 @st.cache_resource
 def load():
+    import subprocess, sys, pathlib
     needed = ["preprocessor.pkl", "lr_model.pkl", "knn_model.pkl"]
-    # If models are missing, or if they crash due to version mismatch, retrain them on the fly!
+    # Use sys.executable so we always call the correct Python binary (python3 on Linux)
+    script = pathlib.Path(__file__).parent / "Train.py"
     if any(not os.path.exists(f) for f in needed):
-        os.system("python Train.py")
+        subprocess.run([sys.executable, str(script)], check=True)
     try:
         return (joblib.load("preprocessor.pkl"),
                 joblib.load("lr_model.pkl"),
                 joblib.load("knn_model.pkl"))
     except Exception:
-        os.system("python Train.py")
+        subprocess.run([sys.executable, str(script)], check=True)
         return (joblib.load("preprocessor.pkl"),
                 joblib.load("lr_model.pkl"),
                 joblib.load("knn_model.pkl"))
+
 
 preprocessor, lr, knn = load()
 
